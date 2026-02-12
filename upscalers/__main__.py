@@ -142,9 +142,10 @@ def main() -> int:
 
     try:
         with urllib.request.urlopen(local_version_url, timeout=10) as url_fd:
-            if url_fd.read() == manifest_md5:
+            version_md5 = url_fd.read().strip()
+            if version_md5 == manifest_md5:
                 log.crit("Local manifest is up to date. Aborting")
-                return 0
+                return 1
     except urllib.error.HTTPError as e:
         log.crit(str(e))
 
