@@ -37,6 +37,7 @@ jobs:
         env:
           UPSCALERS_USER: ${{ github.repository_owner }}
           UPSCALERS_REPO: ${{ github.repository }}
+          UPSCALERS_EVENT: ${{ github.event_name }}
         run: |
           python3 -m upscalers
       - uses: actions/upload-pages-artifact@v3

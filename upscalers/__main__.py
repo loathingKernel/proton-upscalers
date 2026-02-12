@@ -18,6 +18,7 @@ _manifest_url = "https://raw.githubusercontent.com/beeradmoore/dlss-swapper-mani
 
 local_github_user = os.environ.get("UPSCALERS_USER")
 local_github_repo = os.environ.get("UPSCALERS_REPO").split("/")[1]
+local_github_event = os.environ.get("UPSCALERS_EVENT")
 local_repo_url = f"https://{local_github_user}.github.io/{local_github_repo}"
 local_manifest_url = f"{local_repo_url}/manifest.json"
 local_version_url = f"{local_repo_url}/version.txt"
@@ -140,14 +141,15 @@ def main() -> int:
 
     manifest, manifest_md5 = _get_manifest()
 
-    try:
-        with urllib.request.urlopen(local_version_url, timeout=10) as url_fd:
-            version_md5 = url_fd.read().strip()
-            if version_md5 == manifest_md5:
-                log.crit("Local manifest is up to date. Aborting")
-                return 1
-    except urllib.error.HTTPError as e:
-        log.crit(str(e))
+    if local_github_event == "schedule":
+        try:
+            with urllib.request.urlopen(local_version_url, timeout=10) as url_fd:
+                version_md5 = url_fd.read().strip().decode("utf-8")
+                if version_md5 == manifest_md5:
+                    log.crit("Local manifest is up to date. Aborting")
+                    return 1
+        except urllib.error.HTTPError as e:
+            log.crit(str(e))
 
     with config.paths.assets.joinpath("version.txt").open("w") as out_ver_fd:
         out_ver_fd.write(manifest_md5)
