@@ -100,9 +100,9 @@ fetch_and_extract() {
     xz_md5=$(md5sum "assets/${xz_name}" | awk '{print toupper($1)}')
     echo "fsr ${fsr_version}: ${dll_size} -> ${xz_size} bytes" >&2
 
-    local fsr4_json
-    fsr4_json=$(cat <<EOF
-[{
+    local new_entry
+    new_entry=$(cat <<EOF
+{
   "version": "${fsr_version}",
   "version_number": 0,
   "internal_name": "Adrenalin ${version}",
@@ -118,11 +118,14 @@ fetch_and_extract() {
   "file_size": ${dll_size},
   "zip_file_size": ${xz_size},
   "dll_source": "AMD Adrenalin ${version}"
-}]
+}
 EOF
     )
 
-    jq --argjson fsr4 "$fsr4_json" '. + {"fsr4": $fsr4}' assets/manifest.json > assets/manifest.json.tmp
+    # Append to existing entries, keep last 7
+    jq --argjson entry "$new_entry" \
+        '.fsr4 = ((.fsr4 // []) + [$entry] | .[-7:])' \
+        assets/manifest.json > assets/manifest.json.tmp
     mv assets/manifest.json.tmp assets/manifest.json
     echo "published FSR ${fsr_version} from Adrenalin ${version}" >&2
 }
