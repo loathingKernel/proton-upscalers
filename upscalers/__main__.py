@@ -16,12 +16,16 @@ from urllib.parse import unquote, urlparse
 
 _manifest_url = "https://raw.githubusercontent.com/beeradmoore/dlss-swapper-manifest-builder/refs/heads/main/manifest.json"
 
-local_github_user = os.environ.get("UPSCALERS_USER")
-local_github_repo = os.environ.get("UPSCALERS_REPO").split("/")[1]
-local_github_event = os.environ.get("UPSCALERS_EVENT")
+local_github_user = os.environ.get("UPSCALERS_USER", "user")
+local_github_repo = os.environ.get("UPSCALERS_REPO", "org/repo").split("/")[1]
+local_github_event = os.environ.get("UPSCALERS_EVENT", "test")
+
 local_repo_url = f"https://{local_github_user}.github.io/{local_github_repo}"
+
 local_manifest_url = f"{local_repo_url}/manifest.json"
-local_version_url = f"{local_repo_url}/version.txt"
+local_version_url_dlsw = f"{local_repo_url}/version.txt"
+local_version_url_opti = f"{local_repo_url}/version_opti.txt"
+local_version_url_fifx = f"{local_repo_url}/version_fifx.txt"
 
 _entry_cwd = os.getcwd()
 
@@ -95,7 +99,7 @@ def _download_file(url: str, dst: Path, *, checksum: Union[str, None] = None) ->
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Proton/10.0"
         },
     )
     try:
@@ -112,7 +116,7 @@ def _download_file(url: str, dst: Path, *, checksum: Union[str, None] = None) ->
         raise e
 
 
-def download_recompress(file: dict):
+def package_dlss_swapper(file: dict):
     url_path = Path(unquote(urlparse(file["download_url"]).path))
     input_file = config.paths.sources.joinpath(url_path.name)
     file_md5 = file.get("zip_md5_hash", None)
@@ -141,29 +145,45 @@ def main() -> int:
 
     manifest, manifest_md5 = _get_manifest()
 
+    update_dlss_swapper = update_optiscaler = update_fidelityfx_sdk = False
     if local_github_event == "schedule":
         try:
-            with urllib.request.urlopen(local_version_url, timeout=10) as url_fd:
+            with urllib.request.urlopen(local_version_url_dlsw, timeout=10) as url_fd:
                 version_md5 = url_fd.read().strip().decode("utf-8")
                 if version_md5 == manifest_md5:
-                    log.crit("Local manifest is up to date. Aborting")
-                    return 1
+                    log.crit("Local dlss-swapper manifest is up to date.")
+                else:
+                    update_dlss_swapper = True
         except urllib.error.HTTPError as e:
             log.crit(str(e))
+    else:
+        update_dlss_swapper = update_optiscaler = update_fidelityfx_sdk = True
 
-    with config.paths.assets.joinpath("version.txt").open("w") as out_ver_fd:
-        out_ver_fd.write(manifest_md5)
+    if not any((update_dlss_swapper, update_optiscaler, update_fidelityfx_sdk)):
+        log.crit("Nothing to do")
+        return 1
 
-    upscalers = ( key for key in manifest.keys() if key not in { "known_dlls", } )
-    for upscaler in upscalers:
-        dlls = manifest[upscaler]
-        log.crit(f"Found {len(dlls)} files for {upscaler}")
-        dlls = tuple(dll for dll in dlls if not dll["is_dev_file"])
-        log.crit(f"Found {len(dlls)} non-dev files for {upscaler}")
-        dlls = dlls[-7:]
-        pool = ThreadPoolExecutor(multiprocessing.cpu_count())
-        with pool as executor:
-            executor.map(download_recompress, dlls)
+    if update_dlss_swapper:
+        with config.paths.assets.joinpath(Path(local_version_url_dlsw).name).open("w") as out_ver_fd:
+            out_ver_fd.write(manifest_md5)
+
+        upscalers = ( key for key in manifest.keys() if key not in { "known_dlls", } )
+        for upscaler in upscalers:
+            dlls = manifest[upscaler]
+            log.crit(f"Found {len(dlls)} files for {upscaler}")
+            dlls = tuple(dll for dll in dlls if not dll["is_dev_file"])
+            log.crit(f"Found {len(dlls)} non-dev files for {upscaler}")
+            dlls = dlls[-5:]
+            pool = ThreadPoolExecutor(multiprocessing.cpu_count())
+            with pool as executor:
+                executor.map(package_dlss_swapper, dlls)
+
+    if update_optiscaler:
+        pass
+
+    if update_fidelityfx_sdk:
+        pass
+
 
     with config.paths.assets.joinpath("manifest.json").open("w") as out_man_fd:
         out_man_fd.write(json.dumps(manifest))
