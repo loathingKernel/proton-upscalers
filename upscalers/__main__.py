@@ -16,16 +16,16 @@ from urllib.parse import unquote, urlparse
 
 _manifest_url = "https://raw.githubusercontent.com/beeradmoore/dlss-swapper-manifest-builder/refs/heads/main/manifest.json"
 
-local_github_user = os.environ.get("UPSCALERS_USER", "user")
-local_github_repo = os.environ.get("UPSCALERS_REPO", "org/repo").split("/")[1]
-local_github_event = os.environ.get("UPSCALERS_EVENT", "test")
+github_user = os.environ.get("UPSCALERS_USER", "user")
+github_repo = os.environ.get("UPSCALERS_REPO", "user/repo").split("/")[1]
+github_event = os.environ.get("UPSCALERS_EVENT", "test")
 
-local_repo_url = f"https://{local_github_user}.github.io/{local_github_repo}"
+repo_url = f"https://{github_user}.github.io/{github_repo}"
 
-local_manifest_url = f"{local_repo_url}/manifest.json"
-local_version_url_dlsw = f"{local_repo_url}/version.txt"
-local_version_url_opti = f"{local_repo_url}/version_opti.txt"
-local_version_url_fifx = f"{local_repo_url}/version_fifx.txt"
+manifest_url = f"{repo_url}/manifest.json"
+version_url = f"{repo_url}/version.txt"
+version_opti_url = f"{repo_url}/version_opti.txt"
+version_fifx_url = f"{repo_url}/version_fifx.txt"
 
 _entry_cwd = os.getcwd()
 
@@ -133,7 +133,7 @@ def package_dlss_swapper(file: dict):
         with lzma.open(output_file, mode="wb", preset=9) as lzma_fd:
             lzma_fd.write(zip_fd.read(info.filename))
     xz_md5_hash = hashlib.md5(output_file.open("rb").read()).hexdigest().upper()
-    file["download_url"] = f"{local_repo_url}/{output_file.name}"
+    file["download_url"] = f"{repo_url}/{output_file.name}"
     file["zip_md5_hash"] = xz_md5_hash
 
 
@@ -146,9 +146,9 @@ def main() -> int:
     manifest, manifest_md5 = _get_manifest()
 
     update_dlss_swapper = update_optiscaler = update_fidelityfx_sdk = False
-    if local_github_event == "schedule":
+    if github_event == "schedule":
         try:
-            with urllib.request.urlopen(local_version_url_dlsw, timeout=10) as url_fd:
+            with urllib.request.urlopen(version_url, timeout=10) as url_fd:
                 version_md5 = url_fd.read().strip().decode("utf-8")
                 if version_md5 == manifest_md5:
                     log.crit("Local dlss-swapper manifest is up to date.")
@@ -164,7 +164,7 @@ def main() -> int:
         return 1
 
     if update_dlss_swapper:
-        with config.paths.assets.joinpath(Path(local_version_url_dlsw).name).open("w") as out_ver_fd:
+        with config.paths.assets.joinpath(Path(version_url).name).open("w") as out_ver_fd:
             out_ver_fd.write(manifest_md5)
 
         upscalers = ( key for key in manifest.keys() if key not in { "known_dlls", } )
