@@ -1,0 +1,4 @@
+requests
+py7zr
+orjson
+configupdater
