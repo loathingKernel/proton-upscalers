@@ -129,6 +129,7 @@ def package() -> list:
             'file_description': 'OptiScaler',
             'file_size': tar_path.stat().st_size,
             'is_dev_file': False,
+            'is_bundle': True,
             'md5_hash': md5_hash,
             'zip_md5_hash': zip_md5_hash,
         }
