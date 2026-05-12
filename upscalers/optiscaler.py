@@ -68,7 +68,7 @@ def package() -> list:
     log.crit(f'Found optiscaler versions: {[rel["tag_name"] for rel in releases]}')
 
     manifest_entries = []
-    for rel in releases:
+    for rel in reversed(releases):
         log.crit(f'Packaging optiscaler {rel["tag_name"]}')
         try:
             resp = requests.get(
