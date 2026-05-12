@@ -112,6 +112,10 @@ def package() -> list:
         ini.update_file(validate=True)
 
         # Create archive
+        md5_hash = {}
+        for dll in src_path.glob('*.dll'):
+            md5_hash[dll.name] = hashlib.md5(dll.open("rb").read()).hexdigest().upper()
+
         tar_path = config.paths.assets.joinpath(f'optiscaler_{rel["tag_name"]}.tar.xz')
         tar_path.unlink(missing_ok=True)
         with tarfile.open(tar_path, 'x:xz') as tar_fd:
@@ -125,7 +129,7 @@ def package() -> list:
             'file_description': 'OptiScaler',
             'file_size': tar_path.stat().st_size,
             'is_dev_file': False,
-            'md5_hash': None,
+            'md5_hash': md5_hash,
             'zip_md5_hash': zip_md5_hash,
         }
         manifest_entries.append(entry)
@@ -138,8 +142,10 @@ def package() -> list:
 
 
 if __name__ == '__main__':
+    from pprint import pprint
     _update = check_update()
     if _update:
-        package()
+        entries = package()
+        pprint(entries)
 
 __all__ = ['check_update', 'package']
