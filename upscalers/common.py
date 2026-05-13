@@ -18,10 +18,10 @@ repo_url = f"https://{github_user}.github.io/{github_repo}"
 
 def version_tuple(version: str) -> tuple:
     try:
-        _version = tuple(version.lstrip('v').split('.'))
+        _version = tuple(version.lstrip("v").split("."))
         _version = tuple((int(s) for s in _version))
     except Exception:
-        _version =  0, 0, 0
+        _version = 0, 0, 0
     return _version
 
 
@@ -72,7 +72,7 @@ config = Config()
 def get_github_releases(url: str) -> dict:
     try:
         resp = requests.get(url, timeout=5)
-        data = resp.content.decode('utf-8')
+        data = resp.content.decode("utf-8")
         return orjson.loads(data)
     except requests.exceptions.Timeout:
         pass
@@ -84,7 +84,7 @@ def check_github_update(releases_url: str, version_url: str) -> bool:
     if not releases:
         return False
     release = releases[0]
-    remote_tag = release['tag_name']
+    remote_tag = release["tag_name"]
     try:
         with urllib.request.urlopen(version_url, timeout=10) as url_fd:
             local_tag = url_fd.read().strip().decode("utf-8")
@@ -103,6 +103,6 @@ __all__ = [
     "log",
     "config",
     "version_tuple",
-    'get_github_releases',
-    'check_github_update'
+    "get_github_releases",
+    "check_github_update",
 ]

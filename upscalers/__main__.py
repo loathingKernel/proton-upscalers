@@ -39,15 +39,21 @@ def _get_manifest() -> tuple[dict, str]:
     return _manifest_json, _manifest_md5  # pyright: ignore [reportReturnType]
 
 
-def _download_dlss_swapper_file(url: str, dst: Path, *, checksum: Union[str, None] = None) -> None:
+def _download_dlss_swapper_file(
+    url: str, dst: Path, *, checksum: Union[str, None] = None
+) -> None:
     """Downloads a file and checks against a checksum.
 
     If the download fails or the checksums do not match, the file is removed and the exception is
     propagated to the caller.
     """
     dst.parent.mkdir(parents=True, exist_ok=True)
-    request = urllib.request.Request(url,
-        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Proton/10.0"}, )
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Proton/10.0"
+        },
+    )
     try:
         with dst.open("wb") as dst_fd:
             with urllib.request.urlopen(request, timeout=10) as url_fd:
@@ -74,7 +80,8 @@ def _package_dlss_swapper(file: dict):
     with zipfile.ZipFile(in_file) as zip_fd:
         if len(zip_fd.infolist()) > 1:
             raise RuntimeError(
-                f"Archive {in_file.name} contains more than one files: {[info.filename for info in zip_fd.infolist()]}")
+                f"Archive {in_file.name} contains more than one files: {[info.filename for info in zip_fd.infolist()]}"
+            )
         info = zip_fd.infolist()[0]
         with lzma.open(out_file, mode="wb", preset=9) as lzma_fd:
             lzma_fd.write(zip_fd.read(info.filename))
@@ -117,11 +124,20 @@ def main() -> int:
         log.crit("Nothing to do")
         return 1
 
-    version_file = config.paths.assets.joinpath(Path(unquote(urlparse(_version_url).path)).name)
+    version_file = config.paths.assets.joinpath(
+        Path(unquote(urlparse(_version_url).path)).name
+    )
     with version_file.open("w") as out_ver_fd:
         out_ver_fd.write(manifest_md5)
 
-    upscalers = (key for key in manifest.keys() if key not in {"known_dlls", })
+    upscalers = (
+        key
+        for key in manifest.keys()
+        if key
+        not in {
+            "known_dlls",
+        }
+    )
     for upscaler in upscalers:
         dlls = manifest[upscaler]
         log.crit(f"Found {len(dlls)} files for {upscaler}")
