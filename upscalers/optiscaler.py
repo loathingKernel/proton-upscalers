@@ -1,51 +1,33 @@
-import functools
 import hashlib
 import io
 import subprocess
 import tarfile
-import urllib.error
-import urllib.request
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 import py7zr
 import requests
 from configupdater import ConfigUpdater
-from orjson import orjson
 
-from upscalers.common import repo_url, log, config, version_tuple
+from upscalers.common import (
+    repo_url,
+    log,
+    config,
+    version_tuple,
+    get_github_releases,
+    check_github_update,
+)
 
 _github_api_url = 'https://api.github.com/repos/optiscaler/OptiScaler/releases'
 _version_url = f'{repo_url}/version_optiscaler.txt'
 
 
-@functools.cache
 def get_releases() -> dict:
-    try:
-        resp = requests.get(_github_api_url, timeout=5)
-        data = resp.content.decode('utf-8')
-        return orjson.loads(data)
-    except requests.exceptions.Timeout:
-        pass
-    return {}
+    return get_github_releases(_github_api_url)
 
 
 def check_update() -> bool:
-    releases = get_releases()
-    if not releases:
-        return False
-    release = releases[0]
-    remote_tag = release['tag_name']
-    try:
-        with urllib.request.urlopen(_version_url, timeout=10) as url_fd:
-            local_tag = url_fd.read().strip().decode("utf-8")
-            if remote_tag == local_tag:
-                log.crit("Local optiscaler version is up to date.")
-                return False
-    except urllib.error.HTTPError as e:
-        log.crit(str(e))
-
-    return True
+    return check_github_update(_github_api_url, _version_url)
 
 
 _package_files = (
@@ -60,7 +42,7 @@ _package_files = (
 )
 
 
-def package() -> list:
+def package() -> dict:
     releases = [
         r for r in get_releases() if version_tuple(r['tag_name']) >= version_tuple('v0.9.1')
     ]
@@ -114,20 +96,22 @@ def package() -> list:
         # Create archive
         md5_hash = {}
         for dll in src_path.glob('*.dll'):
-            md5_hash[dll.name] = hashlib.md5(dll.open("rb").read()).hexdigest().upper()
+            with dll.open("rb") as dll_fd:
+                md5_hash[dll.name] = hashlib.md5(dll_fd.read()).hexdigest().upper()
 
         tar_path = config.paths.assets.joinpath(f'optiscaler_{rel["tag_name"]}.tar.xz')
         tar_path.unlink(missing_ok=True)
         with tarfile.open(tar_path, 'x:xz') as tar_fd:
             for path in src_path.iterdir():
                 tar_fd.add(path, arcname=path.name)
-        zip_md5_hash = hashlib.md5(tar_path.open("rb").read()).hexdigest().upper()
+        with tar_path.open("rb") as tar_fd:
+            zip_md5_hash = hashlib.md5(tar_fd.read()).hexdigest().upper()
 
         entry = {
             'version': rel["tag_name"].lstrip('v'),
             'download_url': f'{repo_url}/{tar_path.name}',
             'file_description': 'OptiScaler',
-            'file_size': tar_path.stat().st_size,
+            'zip_file_size': tar_path.stat().st_size,
             'is_dev_file': False,
             'is_bundle': True,
             'md5_hash': md5_hash,
@@ -139,7 +123,7 @@ def package() -> list:
     with version_file.open("w") as out_ver_fd:
         out_ver_fd.write(releases[0]['tag_name'])
 
-    return manifest_entries
+    return {'optiscaler': manifest_entries }
 
 
 if __name__ == '__main__':

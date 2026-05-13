@@ -14,6 +14,7 @@ from urllib.parse import unquote, urlparse
 
 from upscalers.common import github_event, repo_url, log, config
 import upscalers.optiscaler as optiscaler
+import upscalers.fidelityfx as fidelityfx
 
 _manifest_url = "https://raw.githubusercontent.com/beeradmoore/dlss-swapper-manifest-builder/refs/heads/main/manifest.json"
 _version_url = f"{repo_url}/version_dlss_swapper.txt"
@@ -51,7 +52,8 @@ def _download_dlss_swapper_file(url: str, dst: Path, *, checksum: Union[str, Non
         with dst.open("wb") as dst_fd:
             with urllib.request.urlopen(request, timeout=10) as url_fd:
                 dst_fd.write(url_fd.read())
-        dst_md5 = hashlib.md5(dst.open("rb").read()).hexdigest().lower()
+        with dst.open("rb") as dst_fd:
+            dst_md5 = hashlib.md5(dst_fd.read()).hexdigest().lower()
         dst_size = dst.stat().st_size if dst.exists() else 0
         # Size check is arbitrary, but nothing should be below 1K
         if (checksum is not None and dst_md5 != checksum.lower()) or dst_size < 1024:
@@ -63,21 +65,22 @@ def _download_dlss_swapper_file(url: str, dst: Path, *, checksum: Union[str, Non
 
 def _package_dlss_swapper(file: dict):
     url_path = Path(unquote(urlparse(file["download_url"]).path))
-    input_file = config.paths.sources.joinpath(url_path.name)
-    file_md5 = file.get("zip_md5_hash", None)
-    log.crit(f"Downloading file {input_file}")
-    _download_dlss_swapper_file(file["download_url"], input_file, checksum=file_md5)
-    output_file = config.paths.assets.joinpath(url_path.name).with_suffix(".xz")
-    log.crit(f"Compressing file {output_file}")
-    with zipfile.ZipFile(input_file) as zip_fd:
+    in_file = config.paths.sources.joinpath(url_path.name)
+    zip_md5 = file.get("zip_md5_hash", None)
+    log.crit(f"Downloading file {in_file}")
+    _download_dlss_swapper_file(file["download_url"], in_file, checksum=zip_md5)
+    out_file = config.paths.assets.joinpath(url_path.name).with_suffix(".xz")
+    log.crit(f"Compressing file {out_file}")
+    with zipfile.ZipFile(in_file) as zip_fd:
         if len(zip_fd.infolist()) > 1:
             raise RuntimeError(
-                f"Archive {input_file.name} contains more than one files: {[info.filename for info in zip_fd.infolist()]}")
+                f"Archive {in_file.name} contains more than one files: {[info.filename for info in zip_fd.infolist()]}")
         info = zip_fd.infolist()[0]
-        with lzma.open(output_file, mode="wb", preset=9) as lzma_fd:
+        with lzma.open(out_file, mode="wb", preset=9) as lzma_fd:
             lzma_fd.write(zip_fd.read(info.filename))
-    xz_md5_hash = hashlib.md5(output_file.open("rb").read()).hexdigest().upper()
-    file["download_url"] = f"{repo_url}/{output_file.name}"
+    with out_file.open("rb") as out_fd:
+        xz_md5_hash = hashlib.md5(out_fd.read()).hexdigest().upper()
+    file["download_url"] = f"{repo_url}/{out_file.name}"
     file["zip_md5_hash"] = xz_md5_hash
 
 
@@ -103,14 +106,14 @@ def main() -> int:
     manifest, manifest_md5 = _get_manifest()
     manifest.pop("known_dlls")
 
-    update_dlss_swapper = update_optiscaler = update_fidelityfx_sdk = False
     if github_event == "schedule":
         update_dlss_swapper = _check_dlss_swapper_update(manifest_md5)
         update_optiscaler = optiscaler.check_update()
+        update_fidelityfx = update_dlss_swapper or update_optiscaler
     else:
-        update_dlss_swapper = update_optiscaler = update_fidelityfx_sdk = True
+        update_dlss_swapper = update_optiscaler = update_fidelityfx = True
 
-    if not any((update_dlss_swapper, update_optiscaler, update_fidelityfx_sdk)):
+    if not any((update_dlss_swapper, update_optiscaler, update_fidelityfx)):
         log.crit("Nothing to do")
         return 1
 
@@ -132,7 +135,10 @@ def main() -> int:
             executor.map(_package_dlss_swapper, dlls)
 
     optiscaler_entries = optiscaler.package()
-    manifest["optiscaler"] = optiscaler_entries
+    manifest.update(optiscaler_entries)
+
+    fidelityfx_entries = fidelityfx.package()
+    manifest.update(fidelityfx_entries)
 
     with config.paths.assets.joinpath("manifest.json").open("w") as out_man_fd:
         out_man_fd.write(json.dumps(manifest))
