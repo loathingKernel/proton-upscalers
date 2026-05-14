@@ -33,10 +33,10 @@ def check_update() -> bool:
 _package_files = (
     "OptiScaler.dll",
     "OptiScaler.ini",
-    "amd_fidelityfx_dx12.dll",
-    "amd_fidelityfx_framegeneration_dx12.dll",
-    "amd_fidelityfx_upscaler_dx12.dll",
-    "amd_fidelityfx_vk.dll",
+    # "amd_fidelityfx_dx12.dll",
+    # "amd_fidelityfx_framegeneration_dx12.dll",
+    # "amd_fidelityfx_upscaler_dx12.dll",
+    # "amd_fidelityfx_vk.dll",
     "fakenvapi.dll",
     "fakenvapi.ini",
 )
