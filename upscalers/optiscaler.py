@@ -89,6 +89,9 @@ def package() -> dict:
         if ini.has_section("Libraries"):
             if ini.has_option("Libraries", "OptiDllPath".lower()):
                 ini["Libraries"]["OptiDllPath"].value = "c:\\windows\\system32\\umu"
+        if ini.has_section("FSR"):
+            if ini.has_option("FSR", "Fsr4Update".lower()):
+                ini["FSR"]["Fsr4Update"].value = "true"
         else:
             raise RuntimeError(
                 "OptiScaler: Could not edit config in version %s", rel["tag_name"]
