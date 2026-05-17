@@ -37,6 +37,7 @@ _package_files = (
     # "amd_fidelityfx_framegeneration_dx12.dll",
     # "amd_fidelityfx_upscaler_dx12.dll",
     # "amd_fidelityfx_vk.dll",
+    "dlssg_to_fsr3_amd_is_better.dll",
     "fakenvapi.dll",
     "fakenvapi.ini",
 )
@@ -65,6 +66,7 @@ def package() -> dict:
             with py7zr.SevenZipFile(bytes_fd) as archive_fd:
                 names = archive_fd.getnames()
                 wanted = [n for n in names if n in _package_files]
+                log.crit(f"Found wanted files: {wanted}")
             archive = src_path.with_name(f"optiscaler_{rel['tag_name']}.7z")
             with archive.open("wb") as file_fd:
                 file_fd.write(bytes_fd.getvalue())
