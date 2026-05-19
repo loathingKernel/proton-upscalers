@@ -49,7 +49,7 @@ def package() -> dict:
         for r in get_releases()
         if version_tuple(r["tag_name"]) >= version_tuple("v0.9.1")
     ]
-    releases = releases[-min(len(releases), 2) :]
+    releases = releases[-min(len(releases), 7) : ]
     log.crit(f"Found optiscaler versions: {[rel['tag_name'] for rel in releases]}")
 
     manifest_entries = []
