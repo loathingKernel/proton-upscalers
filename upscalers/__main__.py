@@ -115,8 +115,9 @@ def main() -> int:
 
     if github_event == "schedule":
         update_dlss_swapper = _check_dlss_swapper_update(manifest_md5)
-        update_optiscaler = optiscaler.check_update()
-        update_fidelityfx = update_dlss_swapper or update_optiscaler
+        update_optiscaler, _ = optiscaler.check_optiscaler_update()
+        update_optipatcher, _ = optiscaler.check_optipatcher_update()
+        update_fidelityfx = update_dlss_swapper or update_optiscaler or update_optipatcher
     else:
         update_dlss_swapper = update_optiscaler = update_fidelityfx = True
 

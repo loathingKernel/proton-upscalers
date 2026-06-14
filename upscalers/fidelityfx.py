@@ -28,7 +28,7 @@ def get_releases() -> dict:
     return get_github_releases(_github_api_url)
 
 
-def check_update() -> bool:
+def check_update() -> tuple[bool, str]:
     return check_github_update(_github_api_url, _version_url)
 
 

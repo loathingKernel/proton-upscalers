@@ -79,22 +79,31 @@ def get_github_releases(url: str) -> dict:
     return {}
 
 
-def check_github_update(releases_url: str, version_url: str) -> bool:
+def check_github_update(releases_url: str, version_url: str, *, comparator: str = "tag") -> tuple[bool, str]:
     releases = get_github_releases(releases_url)
     if not releases:
-        return False
+        return False, ""
     release = releases[0]
-    remote_tag = release["tag_name"]
+    if comparator == "tag":
+        remote_version = release["tag_name"]
+    elif comparator == "date":
+        remote_version = release["updated_at"]
+    else:
+        raise RuntimeError(f"Unknown comparator: {comparator}")
     try:
         with urllib.request.urlopen(version_url, timeout=10) as url_fd:
-            local_tag = url_fd.read().strip().decode("utf-8")
-            if remote_tag == local_tag:
-                log.crit("Local optiscaler version is up to date.")
-                return False
+            local_version = url_fd.read().strip().decode("utf-8")
+            if remote_version == local_version:
+                log.crit("Local version is up to date.")
+                return False, remote_version
     except urllib.error.HTTPError as e:
         log.crit(str(e))
 
-    return True
+    return True, remote_version
+
+
+if __name__ == "__main__":
+    check_github_update("https://api.github.com/repos/optiscaler/OptiPatcher/releases", "version_optipatcher.txt")
 
 
 __all__ = [
