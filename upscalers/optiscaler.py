@@ -230,23 +230,9 @@ def package() -> dict:
 if __name__ == "__main__":
     from pprint import pprint
 
-    # _update, _ = check_optiscaler_update()
-    # if _update:
-    #     entries = package()
-    #     pprint(entries)
-
-    cached_file = Path("assets/optiscaler_v0.9.2.tar.xz")
-    prefix_dir = Path("testing")
-    prefix_dir.mkdir()
-    path = prefix_dir.joinpath("second")
-    path.mkdir()
-    with tarfile.open(cached_file, 'r:xz') as tar_fd:
-        names = tar_fd.getnames()
-        for name in names:
-            local_file = os.path.join(prefix_dir, path, name)
-            if name.endswith('.ini') and os.path.exists(local_file):
-                os.rename(local_file, local_file + '.old' )
-            tar_fd.extract(name, os.path.join(prefix_dir, path), filter='data')
-
+    _update, _ = check_optiscaler_update()
+    if _update:
+        entries = package()
+        pprint(entries)
 
 __all__ = ["check_optiscaler_update", "check_optipatcher_update", "package"]
