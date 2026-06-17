@@ -151,7 +151,7 @@ def package() -> dict:
             src_path.joinpath("amd_fidelityfx_dx12.dll").rename(
                 src_path.joinpath("amd_fidelityfx_loader_dx12.dll")
             )
-        for link in ("d3d12.dll", "dbghelp.dll", "dxgi.dll"):
+        for link in ("d3d12.dll", "dbghelp.dll", "dxgi.dll", "winmm.dll"):
             src_path.joinpath(link).unlink(missing_ok=True)
             src_path.joinpath(link).symlink_to("OptiScaler.dll")
 
@@ -249,4 +249,4 @@ if __name__ == "__main__":
             tar_fd.extract(name, os.path.join(prefix_dir, path), filter='data')
 
 
-__all__ = ["check_optiscaler_update", "package"]
+__all__ = ["check_optiscaler_update", "check_optipatcher_update", "package"]
