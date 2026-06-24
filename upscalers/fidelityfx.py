@@ -34,6 +34,7 @@ _ffx4_versions = [
     {"tag": "v2.0.0", "version": "4.0.2"},
     {"tag": "v2.1.1", "version": "4.0.3"},
     {"tag": "v2.2.0", "version": "4.1.0"},
+    {"tag": "v2.3.0", "version": "4.1.1"},
 ]
 
 
