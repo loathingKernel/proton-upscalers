@@ -39,7 +39,9 @@ def check_optiscaler_update() -> tuple[bool, str]:
 
 
 def check_optipatcher_update() -> tuple[bool, str]:
-    return check_github_update(_patcher_github_api_url, _patcher_version_url, comparator="date")
+    return check_github_update(
+        _patcher_github_api_url, _patcher_version_url, comparator="date"
+    )
 
 
 _package_files = (
@@ -95,14 +97,18 @@ def package() -> dict:
         for r in get_optiscaler_releases()
         if version_tuple(r["tag_name"]) >= version_tuple("v0.9.1")
     ]
-    scaler_releases = scaler_releases[-min(len(scaler_releases), 7):]
-    log.crit(f"Found optiscaler versions: {[rel['tag_name'] for rel in scaler_releases]}")
+    scaler_releases = scaler_releases[-min(len(scaler_releases), 7) :]
+    log.crit(
+        f"Found optiscaler versions: {[rel['tag_name'] for rel in scaler_releases]}"
+    )
 
     patcher_release = get_optipatcher_releases()[0]
     log.crit(f"Found optipatcher version: {patcher_release['updated_at']}")
 
     try:
-        patcher_resp = requests.get(patcher_release["assets"][0]["browser_download_url"], timeout=10)
+        patcher_resp = requests.get(
+            patcher_release["assets"][0]["browser_download_url"], timeout=10
+        )
     except requests.exceptions.Timeout:
         raise RuntimeError("Failed to get OptiPatcher asset.")
 
@@ -113,7 +119,9 @@ def package() -> dict:
     for rel in reversed(scaler_releases):
         log.crit(f"Packaging optiscaler {rel['tag_name']}")
         try:
-            scaler_resp = requests.get(rel["assets"][0]["browser_download_url"], timeout=10)
+            scaler_resp = requests.get(
+                rel["assets"][0]["browser_download_url"], timeout=10
+            )
         except requests.exceptions.Timeout:
             continue
 
@@ -154,7 +162,10 @@ def package() -> dict:
             ((("Libraries", "OptiDllPath"),), "c:\\windows\\system32\\umu"),
             ((("FSR", "Fsr4Update"),), "true"),
             ((("Hotfix", "CheckForUpdate"),), "false"),
-            ((("ProcessFilter", "ProcessExclusionList"),), "|".join(_excluded_processes)),
+            (
+                (("ProcessFilter", "ProcessExclusionList"),),
+                "|".join(_excluded_processes),
+            ),
         )
         for cfg in optiscaler_configs:
             combo, value = cfg

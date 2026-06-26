@@ -1,6 +1,3 @@
-import hashlib
-import io
-import lzma
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -12,6 +9,7 @@ from upscalers.common import (
     config,
     get_github_releases,
     check_github_update,
+    create_redist,
 )
 
 _github_api_url = (
@@ -56,31 +54,9 @@ def package() -> dict:
 
             log.crit(f'Downloading file "{file["name"]}"')
             resp = requests.get(url, timeout=10)
-
-            with io.BytesIO(resp.content) as bytes_fd:
-                file_size = len(bytes_fd.getvalue())
-                md5_hash = hashlib.md5(bytes_fd.getvalue()).hexdigest().upper()
-                zip_file = config.paths.assets.joinpath(
-                    f"{file['group']}_v{version['version']}_{md5_hash}.xz"
-                )
-                with lzma.open(zip_file, mode="wb", preset=9) as lzma_fd:
-                    lzma_fd.write(bytes_fd.getvalue())
-
-            with zip_file.open("rb") as zip_fd:
-                zip_md5_hash = hashlib.md5(zip_fd.read()).hexdigest().upper()
-
-            entry = {
-                "version": version["version"],
-                "download_url": f"{repo_url}/{zip_file.name}",
-                "file_description": "FidelityFX FSR4",
-                "file_size": file_size,
-                "zip_file_size": zip_file.stat().st_size,
-                "is_dev_file": False,
-                "is_bundle": False,
-                "md5_hash": md5_hash,
-                "zip_md5_hash": zip_md5_hash,
-            }
-
+            entry = create_redist(
+                resp.content, file["group"], version["version"], "FidelityFX FSR4"
+            )
             group_entries.append(entry)
 
         manifest_entries[file["group"]] = group_entries

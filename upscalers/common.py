@@ -1,4 +1,7 @@
 import functools
+import hashlib
+import io
+import lzma
 import os
 import sys
 import urllib.request
@@ -79,7 +82,9 @@ def get_github_releases(url: str) -> dict:
     return {}
 
 
-def check_github_update(releases_url: str, version_url: str, *, comparator: str = "tag") -> tuple[bool, str]:
+def check_github_update(
+    releases_url: str, version_url: str, *, comparator: str = "tag"
+) -> tuple[bool, str]:
     releases = get_github_releases(releases_url)
     if not releases:
         return False, ""
@@ -102,8 +107,36 @@ def check_github_update(releases_url: str, version_url: str, *, comparator: str 
     return True, remote_version
 
 
+def create_redist(data: bytes, name: str, version: str, desc: str) -> dict:
+    with io.BytesIO(data) as bytes_fd:
+        file_size = len(bytes_fd.getvalue())
+        md5_hash = hashlib.md5(bytes_fd.getvalue()).hexdigest().upper()
+        zip_file = config.paths.assets.joinpath(f"{name}_v{version}_{md5_hash}.xz")
+        with lzma.open(zip_file, mode="wb", preset=9) as lzma_fd:
+            lzma_fd.write(bytes_fd.getvalue())
+
+    with zip_file.open("rb") as zip_fd:
+        zip_md5_hash = hashlib.md5(zip_fd.read()).hexdigest().upper()
+
+    entry = {
+        "version": version,
+        "download_url": f"{repo_url}/{zip_file.name}",
+        "file_description": desc,
+        "file_size": file_size,
+        "zip_file_size": zip_file.stat().st_size,
+        "is_dev_file": False,
+        "is_bundle": False,
+        "md5_hash": md5_hash,
+        "zip_md5_hash": zip_md5_hash,
+    }
+    return entry
+
+
 if __name__ == "__main__":
-    check_github_update("https://api.github.com/repos/optiscaler/OptiPatcher/releases", "version_optipatcher.txt")
+    check_github_update(
+        "https://api.github.com/repos/optiscaler/OptiPatcher/releases",
+        "version_optipatcher.txt",
+    )
 
 
 __all__ = [
@@ -114,4 +147,5 @@ __all__ = [
     "version_tuple",
     "get_github_releases",
     "check_github_update",
+    "create_redist",
 ]
