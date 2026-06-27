@@ -82,6 +82,18 @@ def get_github_releases(url: str) -> dict:
     return {}
 
 
+def get_local_version(url: str) -> str:
+    local_version = ""
+
+    try:
+        with urllib.request.urlopen(url, timeout=10) as url_fd:
+            local_version = url_fd.read().strip().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        log.crit(str(e))
+
+    return local_version
+
+
 def check_github_update(
     releases_url: str, version_url: str, *, comparator: str = "tag"
 ) -> tuple[bool, str]:
@@ -95,14 +107,9 @@ def check_github_update(
         remote_version = release["updated_at"]
     else:
         raise RuntimeError(f"Unknown comparator: {comparator}")
-    try:
-        with urllib.request.urlopen(version_url, timeout=10) as url_fd:
-            local_version = url_fd.read().strip().decode("utf-8")
-            if remote_version == local_version:
-                log.crit("Local version is up to date.")
-                return False, remote_version
-    except urllib.error.HTTPError as e:
-        log.crit(str(e))
+
+    if get_local_version(version_url) == remote_version:
+        return False, remote_version
 
     return True, remote_version
 
@@ -145,6 +152,7 @@ __all__ = [
     "log",
     "config",
     "version_tuple",
+    "get_local_version",
     "get_github_releases",
     "check_github_update",
     "create_redist",

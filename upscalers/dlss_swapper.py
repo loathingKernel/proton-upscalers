@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Union
 from urllib.parse import unquote, urlparse
 
-from upscalers.common import repo_url, log, config, github_event
+from upscalers.common import repo_url, log, config, github_event, get_local_version
 
 _manifest_url = "https://raw.githubusercontent.com/beeradmoore/dlss-swapper-manifest-builder/refs/heads/main/manifest.json"
 _version_url = f"{repo_url}/version_dlss_swapper.txt"
@@ -36,16 +36,7 @@ def get_manifest() -> tuple[dict, str]:
 
 
 def check_update(manifest_md5) -> bool:
-    try:
-        with urllib.request.urlopen(_version_url, timeout=10) as url_fd:
-            version_md5 = url_fd.read().strip().decode("utf-8")
-            if version_md5 == manifest_md5:
-                log.crit("Local dlss-swapper manifest is up to date.")
-                return False
-    except urllib.error.HTTPError as e:
-        log.crit(str(e))
-
-    return True
+    return not get_local_version(_version_url) == manifest_md5
 
 
 def _download_file(url: str, dst: Path, *, checksum: Union[str, None] = None) -> None:

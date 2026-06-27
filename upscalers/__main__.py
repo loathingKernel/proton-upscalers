@@ -21,13 +21,16 @@ def main() -> int:
         update_dlss_swapper = dlss_swapper.check_update(manfst_md5)
         update_optiscaler, _ = optiscaler.check_optiscaler_update()
         update_optipatcher, _ = optiscaler.check_optipatcher_update()
+        update_amdxcffx64_amd, _ = amdxcffx64.check_amd_update()
+        update_amdxcffx64_proton, _ = amdxcffx64.check_proton_update()
+        update_amdxcffx64 = update_amdxcffx64_amd or update_amdxcffx64_proton
         update_fidelityfx = (
-            update_dlss_swapper or update_optiscaler or update_optipatcher
+            update_dlss_swapper or update_optiscaler or update_optipatcher or update_amdxcffx64
         )
     else:
-        update_dlss_swapper = update_optiscaler = update_fidelityfx = True
+        update_dlss_swapper = update_optiscaler = update_amdxcffx64 = update_fidelityfx = True
 
-    if not any((update_dlss_swapper, update_optiscaler, update_fidelityfx)):
+    if not any((update_dlss_swapper, update_optiscaler, update_amdxcffx64, update_fidelityfx)):
         log.crit("Nothing to do")
         return 1
 

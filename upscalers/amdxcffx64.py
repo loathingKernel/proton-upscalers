@@ -6,34 +6,34 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
-from upscalers.common import repo_url, log, config, create_redist
+from upscalers.common import repo_url, log, config, create_redist, get_local_version
 
-_amd_amdxcffx64_version_url = f"{repo_url}/version_amd_amdxcffx64.txt"
-_valve_amdxcffx64_version_url = f"{repo_url}/version_valve_amdxcffx64.txt"
+_amd_version_url = f"{repo_url}/version_amd_amdxcffx64.txt"
+_proton_version_url = f"{repo_url}/version_proton_amdxcffx64.txt"
 
 
-__fsr4_dlls: dict[str, dict] = {
-    "4.0.0": {
-        "version": "4.0.0_67A4D2BC10ad000",
+__amd_dlls: list[dict[str, str]] = [
+    {
+        "version": "4.0.0",
         "download_url": "https://download.amd.com/dir/bin/amdxcffx64.dll/67A4D2BC10ad000/amdxcffx64.dll",
     },
-    "4.0.1": {
-        "version": "4.0.1_67D435F7d97000",
+    {
+        "version": "4.0.1",
         "download_url": "https://download.amd.com/dir/bin/amdxcffx64.dll/67D435F7d97000/amdxcffx64.dll",
     },
-    "4.0.2": {
-        "version": "4.0.2_68840348eb8000",
+    {
+        "version": "4.0.2",
         "download_url": "https://download.amd.com/dir/bin/amdxcffx64.dll/68840348eb8000/amdxcffx64.dll",
     },
-    "4.0.3": {
-        "version": "4.0.3_6930960536b9000",
+    {
+        "version": "4.0.3",
         "download_url": "https://download.amd.com/dir/bin/amdxcffx64.dll/6930960536b9000/amdxcffx64.dll",
     },
-    "4.1.0": {
-        "version": "4.1.0_69A0952A304a000",
+    {
+        "version": "4.1.0",
         "download_url": "https://download.amd.com/dir/bin/amdxcffx64.dll/69A0952A304a000/amdxcffx64.dll",
     },
-}
+]
 
 
 @lru_cache(maxsize=32)
@@ -49,33 +49,50 @@ def __dll_download_exists(url: str) -> bool:
     return False
 
 
-def check_amd_amdxcffx64_update() -> tuple[bool, str]:
-    pass
+def check_amd_update() -> tuple[bool, str]:
+    remote_version = __amd_dlls[0]["version"]
+
+    for item in __amd_dlls:
+        if __dll_download_exists(item["download_url"]):
+            resp = requests.head(item["download_url"])
+            remote_version = f'{item["version"]}-{resp.headers["last-modified"]}'
+
+    if get_local_version(_amd_version_url) == remote_version:
+        return False, remote_version
+
+    return True, remote_version
 
 
-def check_valve_amdxcffx64_update() -> tuple[bool, str]:
-    pass
+def check_proton_update() -> tuple[bool, str]:
+    remote_version = ""
+    src_path = config.paths.sources.joinpath("proton_experimental")
+    with src_path.joinpath("version").open("r") as proton_ver_fd:
+        remote_version = proton_ver_fd.read().split(" ")[1]
+
+    if get_local_version(_proton_version_url) == remote_version:
+        return False, remote_version
+
+    return True, remote_version
 
 
 def package() -> dict:
     group_entries = []
 
-    amd_version = "4.0.0"
-    for version in __fsr4_dlls:
-        item = __fsr4_dlls[version]
+    amd_version = __amd_dlls[0]["version"]
+    for item in __amd_dlls:
 
         if __dll_download_exists(item["download_url"]):
-            amd_version = version
-            log.crit(f'Downloading version "{version}"')
+            log.crit(f'Downloading version "{item["version"]}"')
 
-            item_resp = requests.get(item["download_url"])
+            resp = requests.get(item["download_url"])
             entry = create_redist(
-                item_resp.content, "amdxcffx64", version, "FSR4 Driver DLL"
+                resp.content, "amdxcffx64", item["version"], "FSR4 Driver DLL"
             )
+            amd_version = f'{item["version"]}-{resp.headers["last-modified"]}'
             group_entries.append(entry)
 
     amd_version_file = config.paths.assets.joinpath(
-        Path(unquote(urlparse(_amd_amdxcffx64_version_url).path)).name
+        Path(unquote(urlparse(_amd_version_url).path)).name
     )
     with amd_version_file.open("w") as out_ver_fd:
         out_ver_fd.write(amd_version)
@@ -83,7 +100,7 @@ def package() -> dict:
     # set in workflow
     src_path = config.paths.sources.joinpath("proton_experimental")
     with src_path.joinpath("version").open("r") as proton_ver_fd:
-        valve_version = proton_ver_fd.read().split(" ")[1]
+        proton_version = proton_ver_fd.read().split(" ")[1]
 
     version = "4.1.1"
     in_file = src_path.joinpath("contrib", "amdxcffx64.dll")
@@ -93,11 +110,11 @@ def package() -> dict:
         )
     group_entries.append(entry)
 
-    valve_version_file = config.paths.assets.joinpath(
-        Path(unquote(urlparse(_valve_amdxcffx64_version_url).path)).name
+    proton_version_file = config.paths.assets.joinpath(
+        Path(unquote(urlparse(_proton_version_url).path)).name
     )
-    with valve_version_file.open("w") as out_ver_fd:
-        out_ver_fd.write(valve_version)
+    with proton_version_file.open("w") as out_ver_fd:
+        out_ver_fd.write(proton_version)
 
     return {"fsr_40_drv": group_entries}
 
@@ -105,8 +122,11 @@ def package() -> dict:
 if __name__ == "__main__":
     from pprint import pprint
 
+    amd_update = check_amd_update()
+    pprint(amd_update)
+
     entries = package()
     pprint(entries)
 
 
-__all__ = ["package"]
+__all__ = ["check_amd_update", "check_proton_update", "package"]
