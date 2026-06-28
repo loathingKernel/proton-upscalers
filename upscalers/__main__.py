@@ -27,6 +27,11 @@ def main() -> int:
         update_fidelityfx = (
             update_dlss_swapper or update_optiscaler or update_optipatcher or update_amdxcffx64
         )
+        log.crit(f"update dlss_swapper:      {update_dlss_swapper}")
+        log.crit(f"update optiscaler:        {update_optiscaler}")
+        log.crit(f"update optipatcher:       {update_optipatcher}")
+        log.crit(f"update amdxcffx64_amd:    {update_amdxcffx64_amd}")
+        log.crit(f"update amdxcffx64_proton: {update_amdxcffx64_proton}")
     else:
         update_dlss_swapper = update_optiscaler = update_amdxcffx64 = update_fidelityfx = True
 
