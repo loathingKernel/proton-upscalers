@@ -69,7 +69,7 @@ def check_proton_update() -> tuple[bool, str]:
     remote_version = ""
     src_path = config.paths.sources.joinpath("proton_experimental")
     with src_path.joinpath("version").open("r") as proton_ver_fd:
-        remote_version = proton_ver_fd.read().split(" ")[1]
+        remote_version = proton_ver_fd.read().strip().split(" ")[1]
 
     local_version = get_local_version(_proton_version_url)
     log.crit(f"version amdxcffx64_proton: {local_version=} {remote_version=}")
@@ -103,8 +103,6 @@ def package() -> dict:
 
     # set in workflow
     src_path = config.paths.sources.joinpath("proton_experimental")
-    with src_path.joinpath("version").open("r") as proton_ver_fd:
-        proton_version = proton_ver_fd.read().split(" ")[1]
 
     version = "4.1.1"
     in_file = src_path.joinpath("contrib", "amdxcffx64.dll")
@@ -113,6 +111,9 @@ def package() -> dict:
             in_file_fd.read(), "amdxcffx64", version, "FSR4 Driver DLL"
         )
     group_entries.append(entry)
+
+    with src_path.joinpath("version").open("r") as proton_ver_fd:
+        proton_version = proton_ver_fd.read().strip().split(" ")[1]
 
     proton_version_file = config.paths.assets.joinpath(
         Path(unquote(urlparse(_proton_version_url).path)).name
@@ -128,6 +129,9 @@ if __name__ == "__main__":
 
     amd_update = check_amd_update()
     pprint(amd_update)
+
+    proton_update = check_proton_update()
+    pprint(proton_update)
 
     entries = package()
     pprint(entries)
