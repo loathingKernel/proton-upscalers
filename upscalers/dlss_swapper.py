@@ -35,8 +35,10 @@ def get_manifest() -> tuple[dict, str]:
     return _manifest_json, _manifest_md5  # pyright: ignore [reportReturnType]
 
 
-def check_update(manifest_md5) -> bool:
-    return not get_local_version(_version_url) == manifest_md5
+def check_update(remote_md5) -> bool:
+    local_md5 = get_local_version(_version_url)
+    log.crit(f"version dlss_swapper: {local_md5=} {remote_md5=}")
+    return not local_md5 == remote_md5
 
 
 def _download_file(url: str, dst: Path, *, checksum: Union[str, None] = None) -> None:

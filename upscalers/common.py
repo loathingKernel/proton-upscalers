@@ -95,7 +95,7 @@ def get_local_version(url: str) -> str:
 
 
 def check_github_update(
-    releases_url: str, version_url: str, *, comparator: str = "tag"
+    name: str, releases_url: str, version_url: str, *, comparator: str = "tag"
 ) -> tuple[bool, str]:
     releases = get_github_releases(releases_url)
     if not releases:
@@ -108,7 +108,9 @@ def check_github_update(
     else:
         raise RuntimeError(f"Unknown comparator: {comparator}")
 
-    if get_local_version(version_url) == remote_version:
+    local_version = get_local_version(version_url)
+    log.crit(f"version {name}: {local_version=} {remote_version=}")
+    if local_version == remote_version:
         return False, remote_version
 
     return True, remote_version
@@ -141,6 +143,7 @@ def create_redist(data: bytes, name: str, version: str, desc: str) -> dict:
 
 if __name__ == "__main__":
     check_github_update(
+        "optipatcher",
         "https://api.github.com/repos/optiscaler/OptiPatcher/releases",
         "version_optipatcher.txt",
     )

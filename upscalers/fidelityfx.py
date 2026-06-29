@@ -27,7 +27,7 @@ def get_releases() -> dict:
 
 
 def check_update() -> tuple[bool, str]:
-    return check_github_update(_github_api_url, _version_url)
+    return check_github_update("fidelityfx", _github_api_url, _version_url)
 
 
 _ffx4_versions = [

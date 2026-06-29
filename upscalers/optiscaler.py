@@ -35,12 +35,12 @@ def get_optipatcher_releases() -> dict:
 
 
 def check_optiscaler_update() -> tuple[bool, str]:
-    return check_github_update(_scaler_github_api_url, _scaler_version_url)
+    return check_github_update("optiscaler", _scaler_github_api_url, _scaler_version_url)
 
 
 def check_optipatcher_update() -> tuple[bool, str]:
     return check_github_update(
-        _patcher_github_api_url, _patcher_version_url, comparator="date"
+        "optipatcher", _patcher_github_api_url, _patcher_version_url, comparator="date"
     )
 
 

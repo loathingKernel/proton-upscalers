@@ -57,7 +57,9 @@ def check_amd_update() -> tuple[bool, str]:
             resp = requests.head(item["download_url"])
             remote_version = f'{item["version"]}-{resp.headers["last-modified"]}'
 
-    if get_local_version(_amd_version_url) == remote_version:
+    local_version = get_local_version(_amd_version_url)
+    log.crit(f"version amdxcffx64_amd: {local_version=} {remote_version=}")
+    if local_version == remote_version:
         return False, remote_version
 
     return True, remote_version
@@ -69,7 +71,9 @@ def check_proton_update() -> tuple[bool, str]:
     with src_path.joinpath("version").open("r") as proton_ver_fd:
         remote_version = proton_ver_fd.read().split(" ")[1]
 
-    if get_local_version(_proton_version_url) == remote_version:
+    local_version = get_local_version(_proton_version_url)
+    log.crit(f"version amdxcffx64_proton: {local_version=} {remote_version=}")
+    if local_version == remote_version:
         return False, remote_version
 
     return True, remote_version
