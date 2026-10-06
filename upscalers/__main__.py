@@ -1,11 +1,8 @@
 import json
 import sys
 
-import upscalers.amdxcffx64 as amdxcffx64
-import upscalers.dlss_swapper as dlss_swapper
-import upscalers.fidelityfx as fidelityfx
-import upscalers.optiscaler as optiscaler
-from upscalers.common import github_event, log, config
+from upscalers import amdxcffx64, dlss_swapper, fidelityfx, optiscaler, streamline
+from upscalers.common import config, github_event, log
 
 
 def main() -> int:
@@ -25,17 +22,24 @@ def main() -> int:
         update_amdxcffx64_proton, _ = amdxcffx64.check_proton_update()
         update_amdxcffx64 = update_amdxcffx64_amd or update_amdxcffx64_proton
         update_fidelityfx = (
-            update_dlss_swapper or update_optiscaler or update_optipatcher or update_amdxcffx64
+            update_dlss_swapper
+            or update_optiscaler
+            or update_optipatcher
+            or update_amdxcffx64
         )
+        update_streamline, _ = streamline.check_update()
         log.crit(f"update dlss_swapper:      {update_dlss_swapper}")
         log.crit(f"update optiscaler:        {update_optiscaler}")
         log.crit(f"update optipatcher:       {update_optipatcher}")
         log.crit(f"update amdxcffx64_amd:    {update_amdxcffx64_amd}")
         log.crit(f"update amdxcffx64_proton: {update_amdxcffx64_proton}")
+        log.crit(f"update streamline:        {update_streamline}")
     else:
-        update_dlss_swapper = update_optiscaler = update_amdxcffx64 = update_fidelityfx = True
+        update_dlss_swapper = update_optiscaler = update_amdxcffx64 = update_fidelityfx = update_streamline = True
 
-    if not any((update_dlss_swapper, update_optiscaler, update_amdxcffx64, update_fidelityfx)):
+    if not any(
+        (update_dlss_swapper, update_optiscaler, update_amdxcffx64, update_fidelityfx, update_streamline)
+    ):
         log.crit("Nothing to do")
         return 1
 
@@ -49,6 +53,9 @@ def main() -> int:
 
     amdxcffx64_entries = amdxcffx64.package()
     manfst.update(amdxcffx64_entries)
+
+    streamline_entries = streamline.package()
+    manfst.update(streamline_entries)
 
     with config.paths.assets.joinpath("manifest.json").open("w") as out_man_fd:
         out_man_fd.write(json.dumps(manfst))
