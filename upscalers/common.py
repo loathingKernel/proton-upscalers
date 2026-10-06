@@ -4,8 +4,8 @@ import io
 import lzma
 import os
 import sys
-import urllib.request
 import urllib.error
+import urllib.request
 from functools import wraps
 from pathlib import Path
 
@@ -22,7 +22,7 @@ repo_url = f"https://{github_user}.github.io/{github_repo}"
 def version_tuple(version: str) -> tuple:
     try:
         _version = tuple(version.lstrip("v").split("."))
-        _version = tuple((int(s) for s in _version))
+        _version = tuple(int(s) for s in _version)
     except Exception:
         _version = 0, 0, 0
     return _version
@@ -150,13 +150,13 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    "github_event",
-    "repo_url",
-    "log",
-    "config",
-    "version_tuple",
-    "get_local_version",
-    "get_github_releases",
     "check_github_update",
+    "config",
     "create_redist",
+    "get_github_releases",
+    "get_local_version",
+    "github_event",
+    "log",
+    "repo_url",
+    "version_tuple",
 ]

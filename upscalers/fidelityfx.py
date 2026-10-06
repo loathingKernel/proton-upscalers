@@ -4,12 +4,12 @@ from urllib.parse import unquote, urlparse
 import requests
 
 from upscalers.common import (
-    repo_url,
-    log,
-    config,
-    get_github_releases,
     check_github_update,
+    config,
     create_redist,
+    get_github_releases,
+    log,
+    repo_url,
 )
 
 _github_api_url = (

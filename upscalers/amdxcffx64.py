@@ -6,7 +6,7 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
-from upscalers.common import repo_url, log, config, create_redist, get_local_version
+from upscalers.common import config, create_redist, get_local_version, log, repo_url
 
 _amd_version_url = f"{repo_url}/version_amd_amdxcffx64.txt"
 _proton_version_url = f"{repo_url}/version_proton_amdxcffx64.txt"
@@ -55,7 +55,7 @@ def check_amd_update() -> tuple[bool, str]:
     for item in __amd_dlls:
         if __dll_download_exists(item["download_url"]):
             resp = requests.head(item["download_url"])
-            remote_version = f'{item["version"]}-{resp.headers["last-modified"]}'
+            remote_version = f"{item['version']}-{resp.headers['last-modified']}"
 
     local_version = get_local_version(_amd_version_url)
     log.crit(f"version amdxcffx64_amd: {local_version=} {remote_version=}")
@@ -84,7 +84,6 @@ def package() -> dict:
 
     amd_version = __amd_dlls[0]["version"]
     for item in __amd_dlls:
-
         if __dll_download_exists(item["download_url"]):
             log.crit(f'Downloading version "{item["version"]}"')
 
@@ -92,7 +91,7 @@ def package() -> dict:
             entry = create_redist(
                 resp.content, "amdxcffx64", item["version"], "FSR4 Driver DLL"
             )
-            amd_version = f'{item["version"]}-{resp.headers["last-modified"]}'
+            amd_version = f"{item['version']}-{resp.headers['last-modified']}"
             group_entries.append(entry)
 
     amd_version_file = config.paths.assets.joinpath(

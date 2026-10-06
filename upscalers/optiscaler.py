@@ -11,12 +11,12 @@ import requests
 from configupdater import ConfigUpdater
 
 from upscalers.common import (
-    repo_url,
-    log,
-    config,
-    version_tuple,
-    get_github_releases,
     check_github_update,
+    config,
+    get_github_releases,
+    log,
+    repo_url,
+    version_tuple,
 )
 
 _scaler_github_api_url = "https://api.github.com/repos/optiscaler/OptiScaler/releases"
@@ -35,7 +35,9 @@ def get_optipatcher_releases() -> dict:
 
 
 def check_optiscaler_update() -> tuple[bool, str]:
-    return check_github_update("optiscaler", _scaler_github_api_url, _scaler_version_url)
+    return check_github_update(
+        "optiscaler", _scaler_github_api_url, _scaler_version_url
+    )
 
 
 def check_optipatcher_update() -> tuple[bool, str]:
@@ -97,7 +99,7 @@ def package() -> dict:
         for r in get_optiscaler_releases()
         if version_tuple(r["tag_name"]) >= version_tuple("v0.9.1")
     ]
-    scaler_releases = scaler_releases[-min(len(scaler_releases), 7) :]
+    scaler_releases = scaler_releases[-min(len(scaler_releases), 5) :]
     log.crit(
         f"Found optiscaler versions: {[rel['tag_name'] for rel in scaler_releases]}"
     )
@@ -135,8 +137,8 @@ def package() -> dict:
             archive = src_path.with_name(f"optiscaler_{rel['tag_name']}.7z")
             with archive.open("wb") as file_fd:
                 file_fd.write(bytes_fd.getvalue())
-        ec = subprocess.call(
-            ["7z", "e", "-y", f"-o{str(src_path)}", str(archive), *wanted],
+        _ = subprocess.call(
+            ["7z", "e", "-y", f"-o{src_path!s}", str(archive), *wanted],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -171,10 +173,9 @@ def package() -> dict:
             combo, value = cfg
             cfg_found = False
             for section, option in combo:
-                if ini.has_section(section):
-                    if ini.has_option(section, option.lower()):
-                        ini[section][option].value = value
-                        cfg_found = True
+                if ini.has_section(section) and ini.has_option(section, option.lower()):
+                    ini[section][option].value = value
+                    cfg_found = True
             if not cfg_found:
                 raise RuntimeError(
                     "OptiScaler: Could not edit config in version %s", rel["tag_name"]
@@ -235,4 +236,4 @@ if __name__ == "__main__":
         entries = package()
         pprint(entries)
 
-__all__ = ["check_optiscaler_update", "check_optipatcher_update", "package"]
+__all__ = ["check_optipatcher_update", "check_optiscaler_update", "package"]

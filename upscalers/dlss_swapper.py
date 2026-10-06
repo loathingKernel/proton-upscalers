@@ -7,10 +7,9 @@ import urllib.request
 import zipfile
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
-from typing import Union
 from urllib.parse import unquote, urlparse
 
-from upscalers.common import repo_url, log, config, github_event, get_local_version
+from upscalers.common import config, get_local_version, github_event, log, repo_url
 
 _manifest_url = "https://raw.githubusercontent.com/beeradmoore/dlss-swapper-manifest-builder/refs/heads/main/manifest.json"
 _version_url = f"{repo_url}/version_dlss_swapper.txt"
@@ -38,10 +37,10 @@ def get_manifest() -> tuple[dict, str]:
 def check_update(remote_md5) -> bool:
     local_md5 = get_local_version(_version_url)
     log.crit(f"version dlss_swapper: {local_md5=} {remote_md5=}")
-    return not local_md5 == remote_md5
+    return local_md5 != remote_md5
 
 
-def _download_file(url: str, dst: Path, *, checksum: Union[str, None] = None) -> None:
+def _download_file(url: str, dst: Path, *, checksum: str | None = None) -> None:
     """Downloads a file and checks against a checksum.
 
     If the download fails or the checksums do not match, the file is removed and the exception is
@@ -55,18 +54,20 @@ def _download_file(url: str, dst: Path, *, checksum: Union[str, None] = None) ->
         },
     )
     try:
-        with dst.open("wb") as dst_fd:
-            with urllib.request.urlopen(request, timeout=10) as url_fd:
-                dst_fd.write(url_fd.read())
+        with (
+            dst.open("wb") as dst_fd,
+            urllib.request.urlopen(request, timeout=10) as url_fd,
+        ):
+            dst_fd.write(url_fd.read())
         with dst.open("rb") as dst_fd:
             dst_md5 = hashlib.md5(dst_fd.read()).hexdigest().lower()
         dst_size = dst.stat().st_size if dst.exists() else 0
         # Size check is arbitrary, but nothing should be below 1K
         if (checksum is not None and dst_md5 != checksum.lower()) or dst_size < 1024:
-            raise RuntimeError(f"Malformed download {str(dst)}")
-    except Exception as e:
+            raise RuntimeError(f"Malformed download {dst!s}")
+    except Exception:
         dst.unlink(missing_ok=True)
-        raise e
+        raise
 
 
 def _package(file: dict):
@@ -94,7 +95,7 @@ def _package(file: dict):
 def package(manifest: dict, manifest_md5: str) -> None:
     upscalers = (
         key
-        for key in manifest.keys()
+        for key in manifest
         if key
         not in {
             "known_dlls",
@@ -119,4 +120,4 @@ def package(manifest: dict, manifest_md5: str) -> None:
         out_ver_fd.write(manifest_md5)
 
 
-__all__ = ["get_manifest", "check_update", "package"]
+__all__ = ["check_update", "get_manifest", "package"]
