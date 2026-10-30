@@ -35,6 +35,7 @@ _ffx4_versions = [
     {"tag": "v2.1.1", "version": "4.0.3"},
     {"tag": "v2.2.0", "version": "4.1.0"},
     {"tag": "v2.3.0", "version": "4.1.1"},
+    {"tag": "v2.4.0", "version": "4.1.2"},
 ]
 
 
@@ -42,6 +43,9 @@ _ffx4_files = [
     {"group": "fsr_40_fg_dx12", "name": "amd_fidelityfx_framegeneration_dx12.dll"},
     {"group": "fsr_40_ldr_dx12", "name": "amd_fidelityfx_loader_dx12.dll"},
     {"group": "fsr_40_up_dx12", "name": "amd_fidelityfx_upscaler_dx12.dll"},
+    {"group": "fsr_40_fg_vk", "name": "amd_fidelityfx_framegeneration_vk.dll"},
+    {"group": "fsr_40_ldr_vk", "name": "amd_fidelityfx_loader_vk.dll"},
+    {"group": "fsr_40_up_vk", "name": "amd_fidelityfx_upscaler_vk.dll"},
 ]
 
 
@@ -54,7 +58,13 @@ def package() -> dict:
             url = _download_url(version["tag"], file["name"])
 
             log.crit(f'Downloading file "{file["name"]}"')
-            resp = requests.get(url, timeout=10)
+            try:
+                resp = requests.get(url, timeout=10)
+                resp.raise_for_status()
+            except requests.HTTPError as e:
+                log.crit(f'Failed to download "{file["name"]}"')
+                log.crit(f'Error: {e}')
+                continue
             entry = create_redist(
                 resp.content, file["group"], version["version"], "FidelityFX FSR4"
             )
